@@ -1,6 +1,6 @@
 <template>
   <div id="test">
-    <img src="./assets/vader.jpg">
+    <!-- <img src="./assets/vader.jpg"> -->
     <router-view/>
   </div>
 </template>
@@ -16,7 +16,7 @@ export default {
   font-family: 'Comfortaa', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
+  /*text-align: center;*/
   color: #2c3e50;
   margin-top: 60px;
 }
