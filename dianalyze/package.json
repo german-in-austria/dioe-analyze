@@ -16,7 +16,8 @@
     "compression": "^1.7.1",
     "pivottable": "^2.19.0",
     "vue": "^2.4.2",
-    "vue-router": "^2.7.0"
+    "vue-router": "^2.7.0",
+    "vuetify": "^1.0.14"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",

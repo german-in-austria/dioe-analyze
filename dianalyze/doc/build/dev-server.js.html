@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>dev-server.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <link rel="stylesheet" media="all" href="../doc-style.css" />
+  <script src="../doc-filelist.js"></script>
+  <script>
+    var relativeDir = "../";
+    var thisFile = "build\\dev-server.js";
+    var defaultSidebar = true;
+  </script>
+  <script src="../doc-script.js"></script>
+
+</head>
+<body>
+  <div id="sidebar_wrapper">
+    <div id="sidebar_switch">
+      <span class="tree">Files</span>
+      <span class="headings">Headings</span>
+    </div>
+    <div id="tree"></div>
+    <div id="headings">
+
+    </div>
+  </div>
+  <div id="sidebar-toggle"></div>
+  <div id="container">
+    <div class="background highlight"></div>
+<table cellpadding="0" cellspacing="0">
+  <tbody>
+    
+      <tr>
+        <td class="docs">
+          <h1>dev-server.js</h1>
+        </td>
+        <td class="code highlight"></td>
+      </tr>
+    
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-1" id="section-1"></a>
+</div>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-meta">'use strict'</span>
+<span class="hljs-built_in">require</span>(<span class="hljs-string">'./check-versions'</span>)()
+
+<span class="hljs-keyword">const</span> config = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../config'</span>)
+<span class="hljs-keyword">if</span> (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = <span class="hljs-built_in">JSON</span>.parse(config.dev.env.NODE_ENV)
+}
+
+<span class="hljs-keyword">const</span> opn = <span class="hljs-built_in">require</span>(<span class="hljs-string">'opn'</span>)
+<span class="hljs-keyword">const</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>)
+<span class="hljs-keyword">const</span> express = <span class="hljs-built_in">require</span>(<span class="hljs-string">'express'</span>)
+<span class="hljs-keyword">const</span> webpack = <span class="hljs-built_in">require</span>(<span class="hljs-string">'webpack'</span>)
+<span class="hljs-keyword">const</span> proxyMiddleware = <span class="hljs-built_in">require</span>(<span class="hljs-string">'http-proxy-middleware'</span>)
+<span class="hljs-keyword">const</span> webpackConfig = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./webpack.dev.conf'</span>)
+
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-2" id="section-2"></a>
+</div>
+<p>default port where dev server listens for incoming traffic</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-keyword">const</span> port = process.env.PORT || config.dev.port
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-3" id="section-3"></a>
+</div>
+<p>automatically open browser, if not set will be false</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-keyword">const</span> autoOpenBrowser = !!config.dev.autoOpenBrowser
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-4" id="section-4"></a>
+</div>
+<p>Define HTTP proxies to your custom API backend
+https://github.com/chimurai/http-proxy-middleware</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-keyword">const</span> proxyTable = config.dev.proxyTable
+
+<span class="hljs-keyword">const</span> app = express()
+<span class="hljs-keyword">const</span> compiler = webpack(webpackConfig)
+
+<span class="hljs-keyword">const</span> devMiddleware = <span class="hljs-built_in">require</span>(<span class="hljs-string">'webpack-dev-middleware'</span>)(compiler, {
+  <span class="hljs-attr">publicPath</span>: webpackConfig.output.publicPath,
+  <span class="hljs-attr">quiet</span>: <span class="hljs-literal">true</span>
+})
+
+<span class="hljs-keyword">const</span> hotMiddleware = <span class="hljs-built_in">require</span>(<span class="hljs-string">'webpack-hot-middleware'</span>)(compiler, {
+  <span class="hljs-attr">log</span>: <span class="hljs-literal">false</span>,
+  <span class="hljs-attr">heartbeat</span>: <span class="hljs-number">2000</span>
+})
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-5" id="section-5"></a>
+</div>
+<p>force page reload when html-webpack-plugin template changes
+currently disabled until this is resolved:
+https://github.com/jantimon/html-webpack-plugin/issues/680
+compiler.plugin('compilation', function (compilation) {
+compilation.plugin('html-webpack-plugin-after-emit', function (data, cb) {
+hotMiddleware.publish({ action: 'reload' })
+cb()
+})
+})</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript">
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-6" id="section-6"></a>
+</div>
+<p>enable hot-reload and state-preserving
+compilation error display</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript">app.use(hotMiddleware)
+
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-7" id="section-7"></a>
+</div>
+<p>proxy api requests</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-built_in">Object</span>.keys(proxyTable).forEach(<span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">context</span>) </span>{
+  <span class="hljs-keyword">const</span> options = proxyTable[context]
+  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> options === <span class="hljs-string">'string'</span>) {
+    options = { <span class="hljs-attr">target</span>: options }
+  }
+  app.use(proxyMiddleware(options.filter || context, options))
+})
+
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-8" id="section-8"></a>
+</div>
+<p>handle fallback for HTML5 history API</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript">app.use(<span class="hljs-built_in">require</span>(<span class="hljs-string">'connect-history-api-fallback'</span>)())
+
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-9" id="section-9"></a>
+</div>
+<p>serve webpack bundle output</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript">app.use(devMiddleware)
+
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-10" id="section-10"></a>
+</div>
+<p>serve pure static assets</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript"><span class="hljs-keyword">const</span> staticPath = path.posix.join(config.dev.assetsPublicPath, config.dev.assetsSubDirectory)
+app.use(staticPath, express.static(<span class="hljs-string">'./static'</span>))
+
+<span class="hljs-keyword">const</span> uri = <span class="hljs-string">'http://localhost:'</span> + port
+
+<span class="hljs-keyword">var</span> _resolve
+<span class="hljs-keyword">var</span> _reject
+<span class="hljs-keyword">var</span> readyPromise = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve, reject</span>) =&gt;</span> {
+  _resolve = resolve
+  _reject = reject
+})
+
+<span class="hljs-keyword">var</span> server
+<span class="hljs-keyword">var</span> portfinder = <span class="hljs-built_in">require</span>(<span class="hljs-string">'portfinder'</span>)
+portfinder.basePort = port
+
+<span class="hljs-built_in">console</span>.log(<span class="hljs-string">'&gt; Starting dev server...'</span>)
+devMiddleware.waitUntilValid(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+  portfinder.getPort(<span class="hljs-function">(<span class="hljs-params">err, port</span>) =&gt;</span> {
+    <span class="hljs-keyword">if</span> (err) {
+      _reject(err)
+    }
+    process.env.PORT = port
+    <span class="hljs-keyword">var</span> uri = <span class="hljs-string">'http://localhost:'</span> + port
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'&gt; Listening at '</span> + uri + <span class="hljs-string">'\n'</span>)
+</pre>
+        </td>
+      </tr>
+    
+      <tr>
+        <td class="docs">
+          <div class="pilwrap">
+  <a class="pilcrow" href="#section-11" id="section-11"></a>
+</div>
+<p>when env is testing, don't need open it</p>
+
+        </td>
+        <td class="code highlight">
+          <pre class="javascript">    <span class="hljs-keyword">if</span> (autoOpenBrowser &amp;&amp; process.env.NODE_ENV !== <span class="hljs-string">'testing'</span>) {
+      opn(uri)
+    }
+    server = app.listen(port)
+    _resolve()
+  })
+})
+
+<span class="hljs-built_in">module</span>.exports = {
+  <span class="hljs-attr">ready</span>: readyPromise,
+  <span class="hljs-attr">close</span>: <span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    server.close()
+  }
+}
+
+</pre>
+        </td>
+      </tr>
+    
+  </tbody>
+</table>
+
+  </div>
+</body>
+</html>
