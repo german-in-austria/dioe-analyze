@@ -15,10 +15,24 @@
         <label for="antworten">Anzahl Antworten:&nbsp</label>
         <input v-model.number="antworten" type="number" min="0" max="200">
       </p>
-      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GET JSON</v-btn>
+      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GENERATE JSON</v-btn>
       <v-btn v-on:click="clear">RESET VALUES</v-btn>
+      <v-btn v-if="Object.keys(this.awjson).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>
     </form>
     <h3>JSON currently saved to logs, CSV export and table view coming soon.</h3>
+    <br>
+    <v-progress-circular v-if="Object.keys(this.awjson).length>0"
+        :size="100"
+        :width="15"
+        :rotate="360"
+        :value="value"
+        color="#6699cc"
+      >
+      {{ value }}
+    </v-progress-circular>
+    <br>
+    <br>
+    <label v-if="Object.keys(this.awjson).length>0">table output coming soon...</label>
   </div>
     <!-- <h1>Tags</h1>
     <h2 v-on:click="loadTags(100)">Test</h2>
@@ -57,7 +71,7 @@
       <option>WSUE1-(D zu S)</option>
     </select>
     <v-btn>hello</v-btn>
-    <v-progress-circular
+    <v-progress-circular v-if="Object.keys(this.awjson).length>0"
         :size="100"
         :width="15"
         :rotate="360"
@@ -78,11 +92,40 @@
   </div>-->
 </template>
 <script>
+var converter = require('json-2-csv')
+
+var json2csvCallback = function (err, csv) {
+  if (err) throw err
+  console.log(csv)
+  var encodedUri = encodeURI(csv)
+  window.open(encodedUri)
+}
+
 export default {
   name: 'HelloWorld',
   mounted () {
     this.tags = [
       {"pk": 110, "fields": {"zu_Phaenomen": 12, "Tag_lang": "keine Periphrase", "Tag": "Pe0", "AReihung": 0, "Kommentar": "PUTT", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 37, "fields": {"zu_Phaenomen": null, "Tag_lang": "Complementizer", "Tag": "COMP", "AReihung": 0, "Kommentar": "Doubly-filled Comp und Comp-Agreement", "Generation": 0}, "model": "KorpusDB.tbl_tags"}, {"pk": 114, "fields": {"zu_Phaenomen": 9, "Tag_lang": "Comp initial Tag", "Tag": "COMPi", "AReihung": 0, "Kommentar": "Einfaches tagging, wenige Details", "Generation": 0}, "model": "KorpusDB.tbl_tags"}, {"pk": 108, "fields": {"zu_Phaenomen": 12, "Tag_lang": "intendierter Gegenstand", "Tag": "+intGeg", "AReihung": 1, "Kommentar": "intendierter bewegter Gegenstand wurde in Satz realisiert ", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 82, "fields": {"zu_Phaenomen": 12, "Tag_lang": "PUT und TAKE", "Tag": "PUTT", "AReihung": 1, "Kommentar": "Alle Szenenbeschreibungen mit realisierter bewegten Gegenstand", "Generation": 0}, "model": "KorpusDB.tbl_tags"}, {"pk": 127, "fields": {"zu_Phaenomen": 14, "Tag_lang": "gerundeter Vokal vorhanden", "Tag": "Rund+", "AReihung": 1, "Kommentar": "", "Generation": 4}, "model": "KorpusDB.tbl_tags"}, {"pk": 54, "fields": {"zu_Phaenomen": 9, "Tag_lang": "Comp dass als 2. Comp", "Tag": "dass", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 50, "fields": {"zu_Phaenomen": null, "Tag_lang": "keine Endung", "Tag": "-\u00d8", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 115, "fields": {"zu_Phaenomen": 9, "Tag_lang": "Einfach: Erster Comp", "Tag": "C1Agree", "AReihung": 1, "Kommentar": "", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 117, "fields": {"zu_Phaenomen": 9, "Tag_lang": "Comp Agreement realisiert", "Tag": "CA+", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 24, "fields": {"zu_Phaenomen": 13, "Tag_lang": "werden Passiv", "Tag": "werdenP", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 197, "fields": {"zu_Phaenomen": null, "Tag_lang": "Kontraktion", "Tag": "Kontr", "AReihung": 1, "Kommentar": "", "Generation": 4}, "model": "KorpusDB.tbl_tags"}, {"pk": 20, "fields": {"zu_Phaenomen": 13, "Tag_lang": "Auswertung Rezipientenpassiv", "Tag": "DATP", "AReihung": 1, "Kommentar": "Ph\u00e4nomenorientiertes Tagging f\u00fcr Rezipientenpassiv", "Generation": 0}, "model": "KorpusDB.tbl_tags"}, {"pk": 29, "fields": {"zu_Phaenomen": 13, "Tag_lang": "Rezipient im Objektskasus", "Tag": "Robj", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 5, "fields": {"zu_Phaenomen": null, "Tag_lang": "entspricht Standard", "Tag": "sd+", "AReihung": 1, "Kommentar": "Variante entspricht Standard", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 185, "fields": {"zu_Phaenomen": 3, "Tag_lang": "Possessum Vater", "Tag": "Vater", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 178, "fields": {"zu_Phaenomen": 3, "Tag_lang": "Possessor Peter", "Tag": "Peter", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 2, "fields": {"zu_Phaenomen": 14, "Tag_lang": "Adjektiv Komparativ", "Tag": "ADJK", "AReihung": 1, "Kommentar": "Ph\u00e4nomenorientiertes Tag", "Generation": 0}, "model": "KorpusDB.tbl_tags"}, {"pk": 59, "fields": {"zu_Phaenomen": null, "Tag_lang": "Pr\u00e4sens", "Tag": "pres", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 39, "fields": {"zu_Phaenomen": null, "Tag_lang": "Erster Comp", "Tag": "C1", "AReihung": 1, "Kommentar": "", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 12, "fields": {"zu_Phaenomen": 14, "Tag_lang": "Derivationssuffix vorhanden", "Tag": "Der+", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 169, "fields": {"zu_Phaenomen": null, "Tag_lang": "Artikel vorhanden", "Tag": "Art+", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 7, "fields": {"zu_Phaenomen": 14, "Tag_lang": "Umlautung bei ADJK/ADJS", "Tag": "Uml", "AReihung": 1, "Kommentar": "Kategorie", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 160, "fields": {"zu_Phaenomen": null, "Tag_lang": "Genitiv-Relation", "Tag": "Gen", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 159, "fields": {"zu_Phaenomen": null, "Tag_lang": "syntaktische Relation", "Tag": "synRel", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 65, "fields": {"zu_Phaenomen": null, "Tag_lang": "Person", "Tag": "Pers", "AReihung": 1, "Kommentar": "", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 67, "fields": {"zu_Phaenomen": null, "Tag_lang": "1. Person", "Tag": "1", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 198, "fields": {"zu_Phaenomen": null, "Tag_lang": "Kontraktion vorhanden", "Tag": "Kontr+", "AReihung": 1, "Kommentar": "", "Generation": 5}, "model": "KorpusDB.tbl_tags"}, {"pk": 70, "fields": {"zu_Phaenomen": null, "Tag_lang": "singular", "Tag": "sg", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 154, "fields": {"zu_Phaenomen": null, "Tag_lang": "Besitz-Relation", "Tag": "Besitz", "AReihung": 1, "Kommentar": "", "Generation": 3}, "model": "KorpusDB.tbl_tags"}, {"pk": 153, "fields": {"zu_Phaenomen": null, "Tag_lang": "semantische Relation", "Tag": "semRel", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}, {"pk": 84, "fields": {"zu_Phaenomen": 12, "Tag_lang": "Put & Take Verb", "Tag": "PTVerb", "AReihung": 1, "Kommentar": "Kategorie Verb-Tagging f\u00fcr Put & Take", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 152, "fields": {"zu_Phaenomen": null, "Tag_lang": "Semantik", "Tag": "Sem", "AReihung": 1, "Kommentar": "", "Generation": 1}, "model": "KorpusDB.tbl_tags"}, {"pk": 8, "fields": {"zu_Phaenomen": 14, "Tag_lang": "Nicht umlautf\u00e4hig", "Tag": "NU", "AReihung": 1, "Kommentar": "", "Generation": 2}, "model": "KorpusDB.tbl_tags"}
+    ]
+    this.documents = [
+      {
+        Make: 'Nissan',
+        Model: 'Murano',
+        Year: '2013',
+        Specifications: {
+          Mileage: '7106',
+          Trim: 'S AWD'
+        }
+      },
+      {
+        Make: 'BMW',
+        Model: 'X5',
+        Year: '2014',
+        Specifications: {
+          Mileage: '3287',
+          Trim: 'M'
+        }
+      }
     ]
     this.interval = setInterval(() => {
       if (this.value === 100) {
@@ -97,17 +140,24 @@ export default {
       this.gwps = await res.json()
     },
     async loadAnswers (erh, set, length) {
+      this.value = 0
       this.erhebung = erh
       this.aufgabenset = set
       this.antworten = length
       var res = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&start=0&len=${length}&filter=erhebung:${erh},aufgabenset:${set}`)
-      this.tagsnew = await res.json()
-      console.log(length, this.erhebung, this.aufgabenset, this.tagsnew)
+      this.awjson = await res.json()
+      console.log(length, this.erhebung, this.aufgabenset, this.awjson)
     },
     clear () {
       this.erhebung = 0
       this.aufgabenset = 0
       this.antworten = 0
+      this.awjson = []
+      this.value = 0
+      // converter.json2csv(this.awjson, json2csvCallback)
+    },
+    exportCSV () {
+      converter.json2csv(this.awjson, json2csvCallback)
     }
   },
   data () {
@@ -115,9 +165,10 @@ export default {
       msg: 'nie so lala',
       tags : [],
       gwps : [],
-      tagnew : [],
+      awjson : [],
+      documents : [],
       interval : {},
-      value : '0',
+      value : 0,
       erhebung : '0',
       aufgabenset : '0',
       antworten : '0'
