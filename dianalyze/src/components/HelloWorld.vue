@@ -5,16 +5,17 @@
     <form id="demo">
       <p>
         <label for="erhebung">Erhebung:&nbsp</label>
-        <select v-model="erhebung">
-          <option v-on:click="testFunction" v-for="option in erhebungen.filter[0]" :value="option.pk">
-            {{ option.Bezeichnung_Erhebung }}
+        <select v-model="erhebung_key">
+          <!--<option v-for="(eh, i) in erhebungen.filter[0]" :value="{i, pk: eh.pk}">-->
+          <option v-on:click="testFunction" v-for="(eh, i) in erhebungen.filter[0]" :value="i">
+            {{ eh.Bezeichnung_Erhebung }}
           </option>
         </select>
       </p>
       <p>
         <label v-if="(this.aufgabenset > 0)" for="aufgabenset">Aufgabenset:&nbsp</label>
         <select v-if="(this.aufgabenset > 0)" v-model="aufgabenset">
-          <option v-for="option in erhebungen.filter[0][erhebung].Aufgabensets" :value="option.pk">
+          <option v-for="option in erhebungen.filter[0][erhebung_key].Aufgabensets" :value="option.pk">
             {{ option.Name_Aset }}
           </option>
         </select>
@@ -28,9 +29,9 @@
         <input v-model.number="antworten" type="number" min="0" max="200">
       </p>
       <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GENERATE JSON</v-btn>
-      <v-btn v-on:click="clear">RESET VALUES</v-btn>
-      <v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>
-      <v-btn v-on:click="geterh">Testbutton</v-btn>
+      <!--<v-btn v-on:click="clear">RESET VALUES</v-btn>-->
+      <!--<v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>-->
+      <!--<v-btn v-on:click="geterh">Testbutton</v-btn>-->
     </form>
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
     <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
@@ -76,7 +77,6 @@ export default {
   },
   methods : {
     async loadAnswers (erh, set, length) {
-      this.value = 0
       this.erhebung = erh
       this.aufgabenset = set
       this.antworten = length
@@ -100,10 +100,12 @@ export default {
     },
     testFunction () {
       this.aufgabenset = 0
-      console.log("Erhebung: ", this.erhebung)
-      console.log("Erhebung Filter: ", this.erhebungen.filter[0][this.erhebung])
-      if (this.erhebungen.filter[0][this.erhebung].Aufgabensets[0].pk) {
-        this.aufgabenset = this.erhebungen.filter[0][this.erhebung].Aufgabensets[0].pk
+      console.log("Erhebung: ", this.erhebungen.filter[0][this.erhebung_key].pk)
+      this.erhebung = this.erhebungen.filter[0][this.erhebung_key].pk
+      // console.log("Erhebung SPT-D: ", this.erhebungen.filter[0][4])
+
+      if (this.erhebungen.filter[0][this.erhebung_key].Aufgabensets[0].pk) {
+        this.aufgabenset = this.erhebungen.filter[0][this.erhebung_key].Aufgabensets[0].pk
         console.log("Aufgabenset: ", this.aufgabenset)
       }
     },
@@ -124,7 +126,8 @@ export default {
       value : 0,
       erhebung : 0,
       aufgabenset : 0,
-      antworten : 0
+      antworten : 0,
+      erhebung_key : 0
     }
   },
   beforeDestroy () {
