@@ -1,13 +1,15 @@
 <template>
   <div class="hello">
-    <h1>DI(ö)ANA(lyze) - alpha</h1>
+    <div id="header">
+      <img src="https://image.ibb.co/nLutoU/header.png" alt="dianalyze-header" height="75px"/>
+    </div>
+    <!--<h1>DI(ö)ANA(lyze) - alpha</h1>-->
     <br>
     <form id="demo">
       <p>
         <label for="erhebung">Erhebung:&nbsp</label>
         <select v-model="erhebung_key">
-          <!--<option v-for="(eh, i) in erhebungen.filter[0]" :value="{i, pk: eh.pk}">-->
-          <option v-on:click="testFunction" v-for="(eh, i) in erhebungen.filter[0]" :value="i">
+          <option v-on:click="getSurvey" v-for="(eh, i) in erhebungen.filter[0]" :value="i">
             {{ eh.Bezeichnung_Erhebung }}
           </option>
         </select>
@@ -20,38 +22,22 @@
           </option>
         </select>
       </p>
-      <!--<p>
-        <label for="aufgabenset">Aufgabenset:&nbsp</label>
-        <input v-model.number="aufgabenset" type="number" min="0" max="87">
-      </p>-->
       <p>
         <label for="antworten">Anzahl Antworten:&nbsp</label>
         <input v-model.number="antworten" type="number" min="0" max="200">
       </p>
       <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GENERATE JSON</v-btn>
-      <!--<v-btn v-on:click="clear">RESET VALUES</v-btn>-->
-      <!--<v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>-->
+      <v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>
       <!--<v-btn v-on:click="geterh">Testbutton</v-btn>-->
     </form>
+    <hr />
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
     <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
     <h3><i>JSON currently saved to logs, CSV export and table view coming soon.</i></h3>
-    <!--<br>
-    <v-progress-circular v-if="Object.keys(this.awjson).length>0"
-        :size="100"
-        :width="15"
-        :rotate="360"
-        :value="value"
-        color="#6699cc"
-      >
-      {{ value }}
-    </v-progress-circular>
-    <br>
-    <br>
-    <label v-if="Object.keys(this.awjson).length>0">table output coming soon...</label>-->
   </div>
 </template>
 <script>
+var _ = require('lodash')
 var converter = require('json-2-csv')
 
 var json2csvCallback = function (err, csv) {
@@ -65,15 +51,7 @@ export default {
   name: 'HelloWorld',
   async mounted () {
     var erhjson = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?info=filter`)
-
     this.erhebungen.filter = (await erhjson.json()).filter
-
-    this.interval = setInterval(() => {
-      if (this.value === 100) {
-        return (this.value = 0)
-      }
-      this.value += 10
-    }, 1000)
   },
   methods : {
     async loadAnswers (erh, set, length) {
@@ -85,28 +63,77 @@ export default {
       // this.awjson = await result.json()
       // console.log("JSON:", await result.json())
       this.awjson.tbl_antworten = (await result.json()).tbl_antworten
-      console.log(this.awjson.tbl_antworten)
+      // console.log("tagset length: ", this.awjson.tbl_antworten[0].tbl_antwortentags_set.length)
+      var header = ""
+      var column = ""
+      // var tags = ""
+      var tagcount = 0
+      var antworten = []
+      var i
+      var j
+      for (i = 0; i < length; i++) {
+        column = ""
+        tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
+        _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
+          if (i === 0) {
+            // no comma at the end of the last header element
+            if (key === "bfl_durch_S") {
+              header = header + key + "\n"
+              column = column + value + "\n"
+            } else {
+              // special treatment for nested obects like tags
+              if (key === "tbl_antwortentags_set") {
+                // console.log("length tags: ", this.awjson.tbl_antworten[i].tbl_antwortentags_set.length)
+                for (j = 0; j < tagcount; j++) {
+                  _.forEach(value[j], function (v, k) {
+                    column = column + v + ";"
+                    // console.log(k + ": " + v)
+                  })
+                }
+              } else {
+                header = header + key + ","
+                column = column + value + ","
+              }
+            }
+          } else {
+            if (key === "bfl_durch_S") {
+              column = column + value + "\n"
+            } else {
+              if (key === "tbl_antwortentags_set") {
+                // console.log("length tags: ", this.awjson.tbl_antworten[i].tbl_antwortentags_set.length)
+                for (j = 0; j < tagcount; j++) {
+                  _.forEach(value[j], function (v, k) {
+                    column = column + v + ";"
+                    // console.log(k + ": " + v)
+                  })
+                }
+              } else {
+                column = column + value + ","
+              }
+            }
+          }
+        })
+        console.log("column: ", column)
+        antworten.push(column)
+      }
+      console.log("header: ", header)
     },
     clear () {
       this.erhebung = 0
       this.aufgabenset = 0
       this.antworten = 0
       this.awjson = {}
-      this.value = 0
       // converter.json2csv(this.awjson, json2csvCallback)
     },
     exportCSV () {
       converter.json2csv(this.awjson, json2csvCallback)
     },
-    testFunction () {
+    getSurvey () {
       this.aufgabenset = 0
-      console.log("Erhebung: ", this.erhebungen.filter[0][this.erhebung_key].pk)
       this.erhebung = this.erhebungen.filter[0][this.erhebung_key].pk
-      // console.log("Erhebung SPT-D: ", this.erhebungen.filter[0][4])
 
       if (this.erhebungen.filter[0][this.erhebung_key].Aufgabensets[0].pk) {
         this.aufgabenset = this.erhebungen.filter[0][this.erhebung_key].Aufgabensets[0].pk
-        console.log("Aufgabenset: ", this.aufgabenset)
       }
     },
     async geterh () {
@@ -121,17 +148,13 @@ export default {
         tbl_antworten_count: {},
         tbl_antworten: []
       },
-      interval : {},
       erhebungen : [],
-      value : 0,
       erhebung : 0,
       aufgabenset : 0,
       antworten : 0,
-      erhebung_key : 0
+      erhebung_key : 0,
+      csv : []
     }
-  },
-  beforeDestroy () {
-    clearInterval(this.interval)
   }
 }
 </script>
@@ -141,8 +164,46 @@ export default {
 h1, h2 {
   font-weight: normal;
 }
+.hello {
+  background-color: white !important;
+}
 a {
   color: #42b983;
+}
+input {
+  border: 2px solid #ddd;
+}
+label {
+  width: 10em;
+  display: block;
+  float: left;
+  margin-left: 10px;
+}
+button {
+  border: 2px solid #ddd;
+  /*background-color: #c2c6c9 !important;*/
+  padding: 5px 5px 5px 5px;
+  color: #3b4d5a;
+  margin-left: 10px;
+}
+select {
+  width: 30%;
+  border: 2px solid #ddd;
+  white-space: normal;
+  max-height: 26px;
+}
+hr {
+  margin-top: 10px;
+  margin-botton: 10px;
+}
+option {
+  width: 100%;
+  border-collapse: collapse;
+}
+.normal {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: normal;
 }
 </style>
 <style>

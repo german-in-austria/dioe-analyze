@@ -2,6 +2,7 @@
   <v-app>
     <v-content>
       <img src="./assets/logo.png">
+      <img src="./assets/header.png">
       <router-view/>
     </v-content>
   </v-app>

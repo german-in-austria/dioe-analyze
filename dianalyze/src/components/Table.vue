@@ -1,0 +1,11 @@
+<!-- demo root element -->
+<div id="demo">
+  <form id="search">
+    Search <input name="query" v-model="searchQuery">
+  </form>
+  <demo-grid
+    :data="gridData"
+    :columns="gridColumns"
+    :filter-key="searchQuery">
+  </demo-grid>
+</div>

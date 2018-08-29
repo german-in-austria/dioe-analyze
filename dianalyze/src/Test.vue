@@ -1,8 +1,8 @@
 <template>
-  <div id="test">
+  <v-app id="test">
     <!-- <img src="./assets/vader.jpg"> -->
     <router-view/>
-  </div>
+  </v-app>
 </template>
 
 <script>
