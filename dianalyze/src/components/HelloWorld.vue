@@ -27,25 +27,58 @@
         <input v-model.number="antworten" type="number" min="0" max="200">
       </p>
       <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GENERATE JSON</v-btn>
-      <v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="exportCSV">EXPORT CSV</v-btn>
+      <v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX">EXPORT XLSX</v-btn>
       <!--<v-btn v-on:click="geterh">Testbutton</v-btn>-->
     </form>
     <hr />
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
-    <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
-    <h3><i>JSON currently saved to logs, CSV export and table view coming soon.</i></h3>
+    <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
+    <h3><i><br>A few notes:<ul><li>parsed JSON data currently saved to logs</li><li>XLSX export works already with random cell data for now, soon the data of the orignal JSON will follow (small formatting problems...)</li><li>bugfix for surveys with just one taskset incoming. queries of this kind will soon be loggable/exportable</li><li>extended XLSX export and table view coming soon aswell</li></ul></i></h3>
+    <h3><br>Git Repository: <a href="https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze" target="_blank">https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze</a></h3>
   </div>
 </template>
 <script>
+var XLSX = require('xlsx')
 var _ = require('lodash')
-var converter = require('json-2-csv')
+var filesaver = require('filesaver.js-npm')
+var wb = XLSX.utils.book_new()
 
-var json2csvCallback = function (err, csv) {
+wb.Props = {
+  Title: "SheetJS Test",
+  Subject: "Test",
+  Author: "Thomas Aiglstorfer"
+}
+
+var data = [
+    {"name":"John", "city": "Seattle"},
+    {"name":"Mike", "city": "Los Angeles"},
+    {"name":"Zach", "city": "New York"}
+]
+
+var ws = XLSX.utils.json_to_sheet(data)
+/* ws = XLSX.utils.sheet_add_aoa([
+  [1, 2, 3],
+  [2, 3, 4]
+]) */
+
+XLSX.utils.book_append_sheet(wb, ws, "DIANA Test Sheet")
+var wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'})
+
+function s2ab (s) {
+  var buf = new ArrayBuffer(s.length) // convert s to arrayBuffer
+  var view = new Uint8Array(buf)  // create uint8array as viewer
+  for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF // convert to octet
+  return buf
+}
+
+// var converter = require('json-2-csv')
+
+/* var json2csvCallback = function (err, csv) {
   if (err) throw err
   console.log(csv)
   var encodedUri = encodeURI(csv)
   window.open(encodedUri)
-}
+} */
 
 export default {
   name: 'HelloWorld',
@@ -58,7 +91,8 @@ export default {
       this.erhebung = erh
       this.aufgabenset = set
       this.antworten = length
-      var result = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&start=0&len=${this.antworten}&filter=erhebung:${this.erhebung},aufgabenset:${this.aufgabenset}`)
+      this.antwortenData = {} // global json to store some of the parsed original information that will later be exported to XLSX
+      var result = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=${this.antworten}&filter=erhebung:${this.erhebung},aufgabenset:${this.aufgabenset}`)
       console.log("Params:", this.erhebung, this.aufgabenset, this.antworten)
       // this.awjson = await result.json()
       // console.log("JSON:", await result.json())
@@ -68,12 +102,14 @@ export default {
       var column = ""
       // var tags = ""
       var tagcount = 0
-      var antworten = []
+      var bflcount = 0
       var i
       var j
+      var l
       for (i = 0; i < length; i++) {
         column = ""
         tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
+        bflcount = this.awjson.tbl_antworten[i].ist_Satz.length
         _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
           if (i === 0) {
             // no comma at the end of the last header element
@@ -86,6 +122,13 @@ export default {
                 // console.log("length tags: ", this.awjson.tbl_antworten[i].tbl_antwortentags_set.length)
                 for (j = 0; j < tagcount; j++) {
                   _.forEach(value[j], function (v, k) {
+                    column = column + v + ";"
+                    // console.log(k + ": " + v)
+                  })
+                }
+              } else if (key === "ist_Satz") {
+                for (l = 0; l < bflcount; l++) {
+                  _.forEach(value[l], function (v, k) {
                     column = column + v + ";"
                     // console.log(k + ": " + v)
                   })
@@ -107,6 +150,13 @@ export default {
                     // console.log(k + ": " + v)
                   })
                 }
+              } else if (key === "ist_Satz") {
+                for (l = 0; l < bflcount; l++) {
+                  _.forEach(value[l], function (v, k) {
+                    column = column + v + ";"
+                    // console.log(k + ": " + v)
+                  })
+                }
               } else {
                 column = column + value + ","
               }
@@ -114,7 +164,7 @@ export default {
           }
         })
         console.log("column: ", column)
-        antworten.push(column)
+        // this.antwortenData.push(column)
       }
       console.log("header: ", header)
     },
@@ -126,7 +176,12 @@ export default {
       // converter.json2csv(this.awjson, json2csvCallback)
     },
     exportCSV () {
-      converter.json2csv(this.awjson, json2csvCallback)
+      // converter.json2csv(this.awjson, json2csvCallback)
+      console.log('CSV not available at the moment')
+    },
+    downloadXLSX () {
+      console.log(this.antwortenData)
+      filesaver.saveAs(new Blob([s2ab(wbout)], {type:"application/octet-stream"}), 'cool_filename_will_follow.xlsx')
     },
     getSurvey () {
       this.aufgabenset = 0

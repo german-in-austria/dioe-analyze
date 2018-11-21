@@ -12,14 +12,17 @@
     "start-server": "node server/production-server.js"
   },
   "dependencies": {
+    "blob": "0.0.5",
     "body-parser": "^1.18.2",
     "compression": "^1.7.1",
+    "filesaver.js-npm": "^1.0.1",
     "json-2-csv": "^2.2.0",
     "lodash": "^4.17.10",
     "pivottable": "^2.19.0",
     "vue": "^2.5.16",
     "vue-router": "^2.7.0",
-    "vuetify": "^1.0.14"
+    "vuetify": "^1.0.14",
+    "xlsx": "^0.14.0"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
