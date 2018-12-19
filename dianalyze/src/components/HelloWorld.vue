@@ -50,9 +50,9 @@ wb.Props = {
 }
 
 var data = [
-    {"name":"John", "city": "Seattle"},
-    {"name":"Mike", "city": "Los Angeles"},
-    {"name":"Zach", "city": "New York"}
+    {"header_1":"foo", "header_2": "bar"},
+    {"header_1":"sthg", "header_2": "nice"},
+    {"header_1":"tiny", "header_2": "dancer"}
 ]
 
 var ws = XLSX.utils.json_to_sheet(data)
@@ -98,75 +98,44 @@ export default {
       // console.log("JSON:", await result.json())
       this.awjson.tbl_antworten = (await result.json()).tbl_antworten
       // console.log("tagset length: ", this.awjson.tbl_antworten[0].tbl_antwortentags_set.length)
-      var header = ""
-      var column = ""
+      // var header = ""
+      // var column = ""
       // var tags = ""
       var tagcount = 0
-      var bflcount = 0
+      // var bflcount = 5
       var i
       var j
-      var l
+      var jObject = {}
+      var jArray = []
+      var tagKey = ""
+      var satzKey = ""
+
       for (i = 0; i < length; i++) {
-        column = ""
         tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
-        bflcount = this.awjson.tbl_antworten[i].ist_Satz.length
         _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
-          if (i === 0) {
-            // no comma at the end of the last header element
-            if (key === "bfl_durch_S") {
-              header = header + key + "\n"
-              column = column + value + "\n"
-            } else {
-              // special treatment for nested obects like tags
-              if (key === "tbl_antwortentags_set") {
-                // console.log("length tags: ", this.awjson.tbl_antworten[i].tbl_antwortentags_set.length)
-                for (j = 0; j < tagcount; j++) {
-                  _.forEach(value[j], function (v, k) {
-                    column = column + v + ";"
-                    // console.log(k + ": " + v)
-                  })
-                }
-              } else if (key === "ist_Satz") {
-                for (l = 0; l < bflcount; l++) {
-                  _.forEach(value[l], function (v, k) {
-                    column = column + v + ";"
-                    // console.log(k + ": " + v)
-                  })
-                }
-              } else {
-                header = header + key + ","
-                column = column + value + ","
-              }
+          if (key === "ist_Satz") {
+            _.forEach(value, function (v, k) {
+              console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
+              satzKey = key + " " + k
+              jObject[satzKey] = v
+            })
+          } else if (key === "tbl_antwortentags_set") {
+            for (j = 0; j < tagcount; j++) {
+              _.forEach(value[j], function (v, k) {
+                console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
+                tagKey = key + " " + k
+                jObject[tagKey] = v
+              })
             }
           } else {
-            if (key === "bfl_durch_S") {
-              column = column + value + "\n"
-            } else {
-              if (key === "tbl_antwortentags_set") {
-                // console.log("length tags: ", this.awjson.tbl_antworten[i].tbl_antwortentags_set.length)
-                for (j = 0; j < tagcount; j++) {
-                  _.forEach(value[j], function (v, k) {
-                    column = column + v + ";"
-                    // console.log(k + ": " + v)
-                  })
-                }
-              } else if (key === "ist_Satz") {
-                for (l = 0; l < bflcount; l++) {
-                  _.forEach(value[l], function (v, k) {
-                    column = column + v + ";"
-                    // console.log(k + ": " + v)
-                  })
-                }
-              } else {
-                column = column + value + ","
-              }
-            }
+            console.log("header key: " + key + " | value: " + value)
+            jObject[key] = value
           }
         })
-        console.log("column: ", column)
-        // this.antwortenData.push(column)
+        console.log("jObject: ", jObject)
+        jArray[i] = jObject
       }
-      console.log("header: ", header)
+      console.log("Array nach for:", jArray)
     },
     clear () {
       this.erhebung = 0
