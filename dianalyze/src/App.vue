@@ -1,8 +1,8 @@
 <template>
   <v-app>
     <v-content>
-      <img src="./assets/logo.png">
-      <img src="./assets/header.png">
+      <img src="./assets/logo.png" />
+      <img src="./assets/header.png" />
       <router-view/>
     </v-content>
   </v-app>
@@ -15,7 +15,7 @@ export default {
 </script>
 
 <style>
-@import '../../node_modules/vuetify/dist/vuetify.min.css';
+/* @import '../../node_modules/vuetify/dist/vuetify.min.css'; */
 #app {
   font-family: 'Avenir', Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

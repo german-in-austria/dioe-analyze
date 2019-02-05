@@ -1,5 +1,5 @@
 <template>
-  <div class="hello">
+  <div class="hello pa-5">
     <div id="header">
       <img src="https://image.ibb.co/nLutoU/header.png" alt="dianalyze-header" height="75px"/>
     </div>
@@ -7,33 +7,54 @@
     <br>
     <form id="demo">
       <p>
-        <label for="erhebung">Erhebung:&nbsp</label>
-        <select v-model="erhebung_key">
-          <option v-on:click="getSurvey" v-for="(eh, i) in erhebungen.filter[0]" :value="i">
+        <!--<label for="erhebung">Erhebung:&nbsp</label>-->
+        <v-autocomplete
+          prepend-icon="cloud_circle"
+          label="Erhebung"
+          placeholder="Start typing to Search"
+          @input="getSurvey"
+          v-model="erhebung_key"
+          :items="erhebungenAutocompleatable"
+        />
+        <!--<select @change="getSurvey" v-model="erhebung_key">
+          <option v-for="(eh, i) in erhebungen.filter[0]" :value="i" :key="eh.Bezeichnung_Erhebung">
             {{ eh.Bezeichnung_Erhebung }}
           </option>
-        </select>
+        </select>-->
       </p>
       <p>
-        <label v-if="(this.aufgabenset > 0)" for="aufgabenset">Aufgabenset:&nbsp</label>
-        <select v-if="(this.aufgabenset > 0)" v-model="aufgabenset">
+        <v-layout>
+          <v-flex>
+            <!--<label v-if="(this.aufgabenset > 0)" for="aufgabenset">Aufgabenset:&nbsp</label>-->
+          </v-flex>
+        </v-layout>
+        <!--<select label="Aufgabensets" v-if="(this.aufgabenset > 0)" v-model="aufgabenset">
           <option v-for="option in erhebungen.filter[0][erhebung_key].Aufgabensets" :value="option.pk">
             {{ option.Name_Aset }}
           </option>
-        </select>
+        </select>-->
+        <v-autocomplete
+          label="Aufgabenset"
+          prepend-icon="filter_list"
+          placeholder="Start typing to Search"
+          v-model="aufgabenset"
+          :items="aufgabensetsAutocompleatable"
+          :disabled="this.aufgabenset===0"
+        />
       </p>
       <p>
-        <label for="antworten">Anzahl Antworten:&nbsp</label>
-        <input v-model.number="antworten" type="number" min="0" max="200">
+        <!--<input v-model.number="antworten" type="number" min="0" max="200">-->
+        <v-text-field prepend-icon="unfold_more" label="Anzahl Antworten" v-model.number="antworten" type="number" steps="1" min="0" max="200" />
       </p>
-      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">GENERATE JSON</v-btn>
-      <v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX">EXPORT XLSX</v-btn>
-      <!--<v-btn v-on:click="geterh">Testbutton</v-btn>-->
+      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)"><v-icon left dark>refresh</v-icon>Erzeuge Query</v-btn>
+      <!--<v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX">EXPORT XLSX</v-btn>-->
+      <!--<v-btn disabled="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX"><v-icon left dark>attach_file</v-icon>EXPORT XLSX</v-btn>-->
+      <v-btn v-on:click="downloadXLSX" :disabled="Object.keys(this.awjson.tbl_antworten).length===0"><v-icon left dark>attach_file</v-icon>EXPORT XLSX</v-btn>
     </form>
     <hr />
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
     <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
-    <h3><i><br>A few notes:<ul><li>parsed JSON data currently saved to logs</li><li>XLSX export works already with random cell data for now, soon the data of the orignal JSON will follow (small formatting problems...)</li><li>bugfix for surveys with just one taskset incoming. queries of this kind will soon be loggable/exportable</li><li>extended XLSX export and table view coming soon aswell</li></ul></i></h3>
+    <h3><i><br>A few notes [2018-02-04]:<ul><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
     <h3><br>Git Repository: <a href="https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze" target="_blank">https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze</a></h3>
   </div>
 </template>
@@ -49,64 +70,40 @@ wb.Props = {
   Author: "Thomas Aiglstorfer"
 }
 
-var data = [
-    {"header_1":"foo", "header_2": "bar"},
-    {"header_1":"sthg", "header_2": "nice"},
-    {"header_1":"tiny", "header_2": "dancer"}
-]
-
-var ws = XLSX.utils.json_to_sheet(data)
-/* ws = XLSX.utils.sheet_add_aoa([
-  [1, 2, 3],
-  [2, 3, 4]
-]) */
-
-XLSX.utils.book_append_sheet(wb, ws, "DIANA Test Sheet")
-var wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'})
-
-function s2ab (s) {
-  var buf = new ArrayBuffer(s.length) // convert s to arrayBuffer
-  var view = new Uint8Array(buf)  // create uint8array as viewer
-  for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF // convert to octet
-  return buf
-}
-
-// var converter = require('json-2-csv')
-
-/* var json2csvCallback = function (err, csv) {
-  if (err) throw err
-  console.log(csv)
-  var encodedUri = encodeURI(csv)
-  window.open(encodedUri)
-} */
-
 export default {
-  name: 'HelloWorld',
+  name: 'DIANA',
   async mounted () {
     var erhjson = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?info=filter`)
     this.erhebungen.filter = (await erhjson.json()).filter
+  },
+  computed: {
+    erhebungenAutocompleatable () {
+      if (this.erhebungen.filter[0]) {
+        return this.erhebungen.filter[0].map((v, i) => ({ text: v.Bezeichnung_Erhebung, value: i }))
+      } else {
+        return []
+      }
+    },
+    aufgabensetsAutocompleatable () {
+      if (this.erhebungen.filter[0]) {
+        return this.erhebungen.filter[0][this.erhebung_key].Aufgabensets.map((v, i) => ({ text: v.Name_Aset, value: v.pk }))
+      } else {
+        return []
+      }
+    }
   },
   methods : {
     async loadAnswers (erh, set, length) {
       this.erhebung = erh
       this.aufgabenset = set
       this.antworten = length
-      this.antwortenData = {} // global json to store some of the parsed original information that will later be exported to XLSX
       var result = await fetch(`https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=${this.antworten}&filter=erhebung:${this.erhebung},aufgabenset:${this.aufgabenset}`)
       console.log("Params:", this.erhebung, this.aufgabenset, this.antworten)
-      // this.awjson = await result.json()
-      // console.log("JSON:", await result.json())
       this.awjson.tbl_antworten = (await result.json()).tbl_antworten
-      // console.log("tagset length: ", this.awjson.tbl_antworten[0].tbl_antwortentags_set.length)
-      // var header = ""
-      // var column = ""
-      // var tags = ""
       var tagcount = 0
-      // var bflcount = 5
       var i
       var j
       var jObject = {}
-      var jArray = []
       var tagKey = ""
       var satzKey = ""
 
@@ -115,14 +112,14 @@ export default {
         _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
           if (key === "ist_Satz") {
             _.forEach(value, function (v, k) {
-              console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
+              // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
               satzKey = key + " " + k
               jObject[satzKey] = v
             })
           } else if (key === "tbl_antwortentags_set") {
             for (j = 0; j < tagcount; j++) {
               _.forEach(value[j], function (v, k) {
-                console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
+                // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
                 tagKey = key + " " + k
                 jObject[tagKey] = v
               })
@@ -132,25 +129,30 @@ export default {
             jObject[key] = value
           }
         })
-        console.log("jObject: ", jObject)
-        jArray[i] = jObject
+        // every object that has been generated by the parsing process, gets written into an array which has the correct structure for the excel export
+        this.antwortenTable[i] = _.clone(jObject)
       }
-      console.log("Array nach for:", jArray)
     },
     clear () {
       this.erhebung = 0
-      this.aufgabenset = 0
+      this.aufgabenset = []
       this.antworten = 0
       this.awjson = {}
-      // converter.json2csv(this.awjson, json2csvCallback)
     },
-    exportCSV () {
-      // converter.json2csv(this.awjson, json2csvCallback)
-      console.log('CSV not available at the moment')
+
+    s2ab (s) {
+      var buf = new ArrayBuffer(s.length) // convert s to arrayBuffer
+      var view = new Uint8Array(buf)  // create uint8array as viewer
+      for (var i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF // convert to octet
+      return buf
     },
     downloadXLSX () {
-      console.log(this.antwortenData)
-      filesaver.saveAs(new Blob([s2ab(wbout)], {type:"application/octet-stream"}), 'cool_filename_will_follow.xlsx')
+      var wsname = "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + _.random(0, 5000000000)
+      console.log(wsname)
+      var ws = XLSX.utils.json_to_sheet(this.antwortenTable)
+      XLSX.utils.book_append_sheet(wb, ws, wsname)
+      var wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'})
+      filesaver.saveAs(new Blob([this.s2ab(wbout)], {type:"application/octet-stream"}), 'cool_filename_will_follow.xlsx')
     },
     getSurvey () {
       this.aufgabenset = 0
@@ -167,17 +169,16 @@ export default {
   },
   data () {
     return {
-      msg: 'nie so lala',
       awjson : {
         tbl_antworten_count: {},
         tbl_antworten: []
       },
-      erhebungen : [],
+      antwortenTable: [],
+      erhebungen : { filter: [] },
       erhebung : 0,
       aufgabenset : 0,
       antworten : 0,
-      erhebung_key : 0,
-      csv : []
+      erhebung_key : 0
     }
   }
 }
