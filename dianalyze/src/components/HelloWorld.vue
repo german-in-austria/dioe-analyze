@@ -3,11 +3,9 @@
     <div id="header">
       <img src="https://image.ibb.co/nLutoU/header.png" alt="dianalyze-header" height="75px"/>
     </div>
-    <!--<h1>DI(ö)ANA(lyze) - alpha</h1>-->
     <br>
     <form id="demo">
       <p>
-        <!--<label for="erhebung">Erhebung:&nbsp</label>-->
         <v-autocomplete
           prepend-icon="cloud_circle"
           label="Erhebung"
@@ -16,11 +14,6 @@
           v-model="erhebung_key"
           :items="erhebungenAutocompleatable"
         />
-        <!--<select @change="getSurvey" v-model="erhebung_key">
-          <option v-for="(eh, i) in erhebungen.filter[0]" :value="i" :key="eh.Bezeichnung_Erhebung">
-            {{ eh.Bezeichnung_Erhebung }}
-          </option>
-        </select>-->
       </p>
       <p>
         <v-layout>
@@ -28,11 +21,6 @@
             <!--<label v-if="(this.aufgabenset > 0)" for="aufgabenset">Aufgabenset:&nbsp</label>-->
           </v-flex>
         </v-layout>
-        <!--<select label="Aufgabensets" v-if="(this.aufgabenset > 0)" v-model="aufgabenset">
-          <option v-for="option in erhebungen.filter[0][erhebung_key].Aufgabensets" :value="option.pk">
-            {{ option.Name_Aset }}
-          </option>
-        </select>-->
         <v-autocomplete
           label="Aufgabenset"
           prepend-icon="filter_list"
@@ -43,9 +31,37 @@
         />
       </p>
       <p>
-        <!--<input v-model.number="antworten" type="number" min="0" max="200">-->
-        <v-text-field prepend-icon="unfold_more" label="Anzahl Antworten" v-model.number="antworten" type="number" steps="1" min="0" max="200" />
+        <v-text-field
+          prepend-icon="unfold_more"
+          label="Anzahl Antworten"
+          v-model.number="antworten"
+          type="number"
+          steps="1"
+          min="0"
+          max="200" />
       </p>
+      <v-radio-group v-model="sheetoption" label="Download Option:" row>
+        <v-radio
+          name="displayoption"
+          label="Alle Tag-Informationen"
+          color="red"
+          :value="0"
+          checked="true"
+        ></v-radio>
+        <v-radio
+          name="displayoption"
+          label="Nur Tagkürzel"
+          color="blue"
+          :value="1"
+        ></v-radio>
+        <v-radio
+          name="displayoption"
+          label="Hierarchische Abbildung (coming soon)"
+          color="green"
+          disabled="true"
+          :value="2"
+        ></v-radio>
+      </v-radio-group>
       <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)"><v-icon left dark>refresh</v-icon>Erzeuge Query</v-btn>
       <!--<v-btn v-if="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX">EXPORT XLSX</v-btn>-->
       <!--<v-btn disabled="Object.keys(this.awjson.tbl_antworten).length>0" v-on:click="downloadXLSX"><v-icon left dark>attach_file</v-icon>EXPORT XLSX</v-btn>-->
@@ -53,8 +69,9 @@
     </form>
     <hr />
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
+    <b>Radio Option: {{ sheetoption }} </b><br>
     <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
-    <h3><i><br>A few notes [2018-02-04]:<ul><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
+    <h3><i><br>A few notes [2018-03-16]:<ul><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>third download options (hierarchy) will follow within the next days, some bugs need to be fixed</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
     <h3><br>Git Repository: <a href="https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze" target="_blank">https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze</a></h3>
   </div>
 </template>
@@ -65,9 +82,9 @@ var filesaver = require('filesaver.js-npm')
 var wb = XLSX.utils.book_new()
 
 wb.Props = {
-  Title: "SheetJS Test",
-  Subject: "Test",
-  Author: "Thomas Aiglstorfer"
+  Title: "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + Date.now(),
+  Subject: "DiÖ",
+  Author: "DiÖ"
 }
 
 export default {
@@ -86,7 +103,7 @@ export default {
     },
     aufgabensetsAutocompleatable () {
       if (this.erhebungen.filter[0]) {
-        return this.erhebungen.filter[0][this.erhebung_key].Aufgabensets.map((v, i) => ({ text: v.Name_Aset, value: v.pk }))
+        return this.erhebungen.filter[0][this.erhebung_key].Aufgabensets.map((v, i) => ({ text: v.Kuerzel + " | " + v.Name_Aset, value: v.pk }))
       } else {
         return []
       }
@@ -106,34 +123,73 @@ export default {
       var jObject = {}
       var tagKey = ""
       var satzKey = ""
+      var tagString = ""
 
-      for (i = 0; i < length; i++) {
-        tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
-        _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
-          if (key === "ist_Satz") {
-            _.forEach(value, function (v, k) {
-              // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
-              satzKey = key + " " + k
-              jObject[satzKey] = v
-            })
-          } else if (key === "tbl_antwortentags_set") {
-            for (j = 0; j < tagcount; j++) {
-              _.forEach(value[j], function (v, k) {
+      if (this.sheetoption === 0) {
+        for (i = 0; i < length; i++) {
+          tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
+          _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
+            if (key === "ist_Satz") {
+              _.forEach(value, function (v, k) {
                 // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
-                tagKey = key + " " + k
-                jObject[tagKey] = v
+                satzKey = key + " " + k
+                jObject[satzKey] = v
               })
+            } else if (key === "tbl_antwortentags_set") {
+              for (j = 0; j < tagcount; j++) {
+                _.forEach(value[j], function (v, k) {
+                  // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
+                  tagKey = "Tag_" + (j + 1) + "_" + key + " " + k
+                  jObject[tagKey] = _.clone(v)
+                })
+              }
+            } else {
+              // console.log("header key: " + key + " | value: " + value)
+              jObject[key] = value
             }
-          } else {
-            console.log("header key: " + key + " | value: " + value)
-            jObject[key] = value
-          }
-        })
-        // every object that has been generated by the parsing process, gets written into an array which has the correct structure for the excel export
-        this.antwortenTable[i] = _.clone(jObject)
+          })
+          // every object that has been generated by the parsing process, gets written into an array which has the correct structure for the excel export
+          this.antwortenTable[i] = _.clone(jObject)
+        }
+      } else if (this.sheetoption === 1) {
+        tagKey = "Tags"
+        // TAGKÜRZEL
+        for (i = 0; i < length; i++) {
+          tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
+          _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
+            if (key === "ist_Satz") {
+              _.forEach(value, function (v, k) {
+                satzKey = key + " " + k
+                jObject[satzKey] = v
+              })
+            } else if (key === "tbl_antwortentags_set") {
+              for (j = 0; j < tagcount; j++) {
+                _.forEach(value[j], function (v, k) {
+                  // tagKey = "Tag_" + (j + 1) + "_" + key + " " + k
+                  // jObject[tagKey] = _.clone(v)
+                  if (k === "id_Tag_Name") {
+                    console.log("Tagname: ", v)
+                    tagString += _.clone(v) + " "
+                  }
+                })
+                jObject["Tags"] = tagString
+              }
+            } else {
+              // console.log("header key: " + key + " | value: " + value)
+              jObject[key] = value
+            }
+          })
+          // every object that has been generated by the parsing process, gets written into an array which has the correct structure for the excel export
+          this.antwortenTable[i] = _.clone(jObject)
+          console.log("String: ", tagString)
+        }
+      } else {
+        // HIERARCHISCHE ABBILDUNG
+        console.log("coming soon!")
       }
     },
     clear () {
+      this.sheetoption = 0
       this.erhebung = 0
       this.aufgabenset = []
       this.antworten = 0
@@ -147,12 +203,12 @@ export default {
       return buf
     },
     downloadXLSX () {
-      var wsname = "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + _.random(0, 5000000000)
+      var wsname = "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + Date.now()
       console.log(wsname)
       var ws = XLSX.utils.json_to_sheet(this.antwortenTable)
       XLSX.utils.book_append_sheet(wb, ws, wsname)
       var wbout = XLSX.write(wb, {bookType:'xlsx',  type: 'binary'})
-      filesaver.saveAs(new Blob([this.s2ab(wbout)], {type:"application/octet-stream"}), 'cool_filename_will_follow.xlsx')
+      filesaver.saveAs(new Blob([this.s2ab(wbout)], {type:"application/octet-stream"}), 'DIANA_EH' + this.erhebung + '_AS' + this.aufgabenset + '_AW' + this.antworten + '.xlsx')
     },
     getSurvey () {
       this.aufgabenset = 0
@@ -178,7 +234,8 @@ export default {
       erhebung : 0,
       aufgabenset : 0,
       antworten : 0,
-      erhebung_key : 0
+      erhebung_key : 0,
+      sheetoption : 0
     }
   }
 }
