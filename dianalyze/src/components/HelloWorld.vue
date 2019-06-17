@@ -42,7 +42,9 @@
             min="0"
             :max="this.antworten_max"
             :disabled="this.complete"
-            thumb-label="always" />
+            thumb-label="always"
+            v-on:change="loadAnswers(erhebung,aufgabenset,antworten)"
+            />
         </v-flex>
         <v-flex xs1>
           <v-text-field
@@ -51,7 +53,9 @@
             steps="1"
             min="0"
             :max="this.antworten_max"
-            :disabled="this.complete" />
+            :disabled="this.complete"
+            v-on:change="loadAnswers(erhebung,aufgabenset,antworten)"
+            />
         </v-flex>
       </v-layout>
       <v-layout align-start justify-start row fill-height wrap>
@@ -69,7 +73,6 @@
             label="Alle Tag-Informationen"
             color="red"
             :value="0"
-            checked="true"
           ></v-radio>
           <v-radio
             name="displayoption"
@@ -92,11 +95,11 @@
       <v-layout align-start justify-start row fill-height wrap>
         <v-flex xs12>
           <v-data-table
-            :total-items="antworten_max"
             item-key="pk"
             :headers="headers"
             :items="tableanswers"
             class="elevation-1"
+            :loading="loading"
             >
             <template v-slot:items="props">
               <td v-for="(v, k) in headers" :key="k">
@@ -106,7 +109,8 @@
           </v-data-table>
         </v-flex>
       </v-layout>
-      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)">
+      <v-btn v-on:click="loadAnswers(erhebung,aufgabenset,antworten)"
+        :loading="loading">
         <v-icon left dark>refresh</v-icon>ERZEUGE QUERY
       </v-btn>
       <v-btn v-on:click="downloadXLSX" :disabled="this.antworten===0">
@@ -154,6 +158,8 @@ export default {
   },
   methods : {
     async loadAnswers (erh, set, length) {
+      this.table_filled = false
+      this.loading = true
       this.antwortenTable = []
       console.log("awTable: ", this.antwortenTable)
       this.erhebung = erh
@@ -285,10 +291,11 @@ export default {
       if (this.complete) { this.antworten = this.antworten_max }
       console.log("length", this.antwortenTable.length)
       console.log("tableanswers", this.tableanswers)
+      this.loading = false
     },
     clear () {
       this.complete = false
-      this.sheetoption = 0
+      this.sheetoption = 1
       this.erhebung = 0
       this.erhebung_key = 0
       this.aufgabenset = 0
@@ -296,6 +303,8 @@ export default {
       // this.awjson = {}
       this.antworten_max = 0
       this.table_filled = false
+      this.loading = false
+      this.tableanswers = []
     },
     s2ab (s) {
       var buf = new ArrayBuffer(s.length) // convert s to arrayBuffer
@@ -306,6 +315,7 @@ export default {
     setAnswerMax () {
       console.log("setAnswerMax")
       this.antworten = this.antworten_max
+      this.loadAnswers(this.erhebung, this.aufgabenset, this.antworten)
     },
     downloadXLSX () {
       var wb = XLSX.utils.book_new()
@@ -365,7 +375,8 @@ export default {
       erhebung_key : 0,
       complete : false,
       table_filled : false,
-      sheetoption : 0
+      sheetoption : 1,
+      loading: false
     }
   }
 }
