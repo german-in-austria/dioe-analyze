@@ -91,18 +91,17 @@
       </v-layout>
       <v-layout align-start justify-start row fill-height wrap>
         <v-flex xs12>
-          <v-data-table v-if="this.table_filled"
+          <v-data-table
+            :total-items="antworten_max"
+            item-key="pk"
             :headers="headers"
             :items="tableanswers"
             class="elevation-1"
             >
             <template v-slot:items="props">
-              <td>{{ props.item.name }}</td>
-              <td class="text-xs-right">{{ props.item.calories }}</td>
-              <td class="text-xs-right">{{ props.item.fat }}</td>
-              <td class="text-xs-right">{{ props.item.carbs }}</td>
-              <td class="text-xs-right">{{ props.item.protein }}</td>
-              <td class="text-xs-right">{{ props.item.iron }}</td>
+              <td v-for="(v, k) in headers" :key="k">
+                {{ props.item[v.value] }}
+              </td>
             </template>
           </v-data-table>
         </v-flex>
@@ -122,7 +121,7 @@
     <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
     <b>Radio Option: {{ sheetoption }} </b><br>
     <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
-    <h3><i><br>A few notes [2018-06-10]:<ul><li>Query preview will be shown after clicking "Generate Query". As of right now just dummy column values, a fix is to be expected soon ;-)</li><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>third download options (hierarchy) will follow within the next days, some bugs need to be fixed</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
+    <h3><i><br>A few notes [2019-06-10]:<ul><li>Query preview now active and working (after clicking the query button). Pagination currently not working, a fix is to be expected soon ;-)</li><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>third download options (hierarchy) will follow within the next days, some bugs need to be fixed</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
     <h3><br>Git Repository: <a href="https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze" target="_blank">https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze</a></h3>
   </div>
 </template>
@@ -130,13 +129,6 @@
 var XLSX = require('xlsx')
 var _ = require('lodash')
 var filesaver = require('filesaver.js-npm')
-var wb = XLSX.utils.book_new()
-
-wb.items = {
-  Title: "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + Date.now(),
-  Subject: "DiÖ",
-  Author: "DiÖ"
-}
 
 export default {
   name: 'DIANA',
@@ -162,9 +154,7 @@ export default {
   },
   methods : {
     async loadAnswers (erh, set, length) {
-      // this.antworten_max = 0
       this.antwortenTable = []
-      // this.awRows = []
       console.log("awTable: ", this.antwortenTable)
       this.erhebung = erh
       this.aufgabenset = set
@@ -179,22 +169,19 @@ export default {
       var jObject = {}
       var tagKey = ""
       var satzKey = ""
-      var tagString = ""
-      // var headersobj = {}
       var headerstmp = []
-      // var answerstmp = []
 
       if (this.sheetoption === 0) { // ALLE TAGINFOS IN EINZELSPALTEN
         for (i = 0; i < length; i++) {
           tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
           _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
             if (i === 0) {
-              // headerstmp.push(key)
               var headersobj = {}
-              headersobj.text = _.clone(key)
-              headersobj.value = _.clone(key)
-              headerstmp.push(headersobj)
-              // console.log("headerobj", headersobj)
+              if (key !== "ist_Satz") {
+                headersobj.text = _.clone(key)
+                headersobj.value = _.clone(key)
+                headerstmp.push(headersobj)
+              }
             }
 
             if (key === "ist_Satz") {
@@ -202,6 +189,11 @@ export default {
                 // console.log("header key: " + key + " | inner key: " + k + " | val: " + v)
                 satzKey = key + " " + k
                 jObject[satzKey] = v
+
+                var headersobj = {}
+                headersobj.text = _.clone(key) + " " + k
+                headersobj.value = _.clone(key) + " " + k
+                headerstmp.push(headersobj)
               })
             } else if (key === "tbl_antwortentags_set") {
               for (j = 0; j < tagcount; j++) {
@@ -226,35 +218,60 @@ export default {
         console.log("Download-Option: Tagkürzel")
         tagKey = "Tags"
 
+        headerstmp = _.reduce(this.awjson.tbl_antworten[0], (m, e, i) => {
+          if (i === 'ist_Satz') {
+            m = m.concat(_.map(e, (v, k) => ({text: `ist_Satz ${k}`, value: `ist_Satz ${k}`})))
+          } else if (i === 'tbl_antwortentags_set' && this.sheetoption === 0) {
+            m = m.concat(_.map(e, (v, k) => ({text: `tbl_antwortentags_set ${k}`, value: `tbl_antwortentags_set ${k}`})))
+          } else {
+            m.push({ text: i, value: i })
+          }
+          return m
+        }, [])
+        this.headers = headerstmp
+        console.log({headerstmp})
+
         for (i = 0; i < length; i++) {
           tagcount = this.awjson.tbl_antworten[i].tbl_antwortentags_set.length
           _.forEach(this.awjson.tbl_antworten[i], function (value, key) {
+            // if (i === 0) {
+            //   var headersobj = {}
+            //   if (key !== "ist_Satz") {
+            //     headersobj.text = _.clone(key)
+            //     headersobj.value = _.clone(key)
+            //     headerstmp.push(headersobj)
+            //   }
+            // }
             if (key === "ist_Satz") {
               _.forEach(value, function (v, k) {
                 satzKey = key + " " + k
                 jObject[satzKey] = v
+                // var headersobj = {}
+                // headersobj.text = _.clone(key) + " " + k
+                // headersobj.value = _.clone(key) + " " + k
+                // headerstmp.push(headersobj)
               })
             } else if (key === "tbl_antwortentags_set") {
+              var tagString = ""
               for (j = 0; j < tagcount; j++) {
                 _.forEach(value[j], function (v, k) {
-                  // tagKey = "Tag_" + (j + 1) + "_" + key + " " + k
-                  // jObject[tagKey] = _.clone(v)
                   if (k === "id_Tag_Name") {
                     console.log("Tagname: ", v)
                     tagString += _.clone(v) + " "
                   }
                 })
-                jObject["Tags"] = tagString
+                jObject["tbl_antwortentags_set"] = tagString
               }
             } else {
               // console.log("header key: " + key + " | value: " + value)
               jObject[key] = value
             }
           })
-          // every object that has been generated by the parsing process, gets written into an array which has the correct structure for the excel export
+          // every object that has been generated by the parsing process, gets written into afn array which has the correct structure for the excel export
           this.antwortenTable[i] = _.clone(jObject)
           this.tableanswers[i] = _.clone(jObject)
-          console.log("String: ", tagString)
+          // this.headers = _.clone(headerstmp)
+          // console.log("String: ", tagString)
         }
       } else {
         // HIERARCHISCHE ABBILDUNG
@@ -291,6 +308,14 @@ export default {
       this.antworten = this.antworten_max
     },
     downloadXLSX () {
+      var wb = XLSX.utils.book_new()
+
+      wb.items = {
+        Title: "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + Date.now(),
+        Subject: "DiÖ",
+        Author: "DiÖ"
+      }
+
       var wsname = "EH" + this.erhebung + "_AS" + this.aufgabenset + "_AW" + this.antworten + "_" + Date.now()
       console.log(wsname)
       var ws = XLSX.utils.json_to_sheet(this.antwortenTable)
@@ -322,98 +347,16 @@ export default {
   },
   data () {
     return {
+      pagination: {
+        sortBy: 'pk'
+      },
       awjson : {
         tbl_antworten_count: {},
         tbl_antworten: []
       },
       antwortenTable: [],
-      headers: [
-        {
-          text: 'Dessert (100g serving)',
-          align: 'left',
-          sortable: false,
-          value: 'name'
-        },
-        { text: 'Calories', value: 'calories' },
-        { text: 'Fat (g)', value: 'fat' },
-        { text: 'Carbs (g)', value: 'carbs' },
-        { text: 'Protein (g)', value: 'protein' },
-        { text: 'Iron (%)', value: 'iron' }
-      ], // for v-data-table
-      tableanswers: [
-        {
-          name: 'Frozen Yogurt',
-          calories: 159,
-          fat: 6.0,
-          carbs: 24,
-          protein: 4.0,
-          iron: '1%'
-        },
-        {
-          name: 'Ice cream sandwich',
-          calories: 237,
-          fat: 9.0,
-          carbs: 37,
-          protein: 4.3,
-          iron: '1%'
-        },
-        {
-          name: 'Eclair',
-          calories: 262,
-          fat: 16.0,
-          carbs: 23,
-          protein: 6.0,
-          iron: '7%'
-        },
-        {
-          name: 'Cupcake',
-          calories: 305,
-          fat: 3.7,
-          carbs: 67,
-          protein: 4.3,
-          iron: '8%'
-        },
-        {
-          name: 'Gingerbread',
-          calories: 356,
-          fat: 16.0,
-          carbs: 49,
-          protein: 3.9,
-          iron: '16%'
-        },
-        {
-          name: 'Jelly bean',
-          calories: 375,
-          fat: 0.0,
-          carbs: 94,
-          protein: 0.0,
-          iron: '0%'
-        },
-        {
-          name: 'Lollipop',
-          calories: 392,
-          fat: 0.2,
-          carbs: 98,
-          protein: 0,
-          iron: '2%'
-        },
-        {
-          name: 'Honeycomb',
-          calories: 408,
-          fat: 3.2,
-          carbs: 87,
-          protein: 6.5,
-          iron: '45%'
-        },
-        {
-          name: 'Donut',
-          calories: 452,
-          fat: 25.0,
-          carbs: 51,
-          protein: 4.9,
-          iron: '22%'
-        }
-      ], // for v-data-table
+      headers: [], // for v-data-table
+      tableanswers: [], // for v-data-table
       erhebungen : { filter: [] },
       erhebung : 0,
       aufgabenset : 0,
