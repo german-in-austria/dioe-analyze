@@ -122,9 +122,9 @@
     </v-container>
     </form>
     <hr />
-    <b>Erhebung:</b> {{ erhebung }} &nbsp <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp <b>Anzahl Antworten:</b> {{ antworten }}<br>
+    <b>Erhebung:</b> {{ erhebung }} &nbsp; <b>Aufgabenset:</b> {{ aufgabenset }} &nbsp; <b>Anzahl Antworten:</b> {{ antworten }}<br>
     <b>Radio Option: {{ sheetoption }} </b><br>
-    <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&ampfilter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
+    <b>API-Link:</b> https://dioedb.dioe.at/restapi/getAntworten?get=tbl_antworten&tagname=true&start=0&len=<font color="red">{{ antworten }}</font>&amp;filter=erhebung:<font color="red">{{ erhebung }}</font>,aufgabenset:<font color="red">{{ aufgabenset }}</font><br>
     <h3><i><br>A few notes [2019-06-10]:<ul><li>Query preview now active and working (after clicking the query button). Pagination currently not working, a fix is to be expected soon ;-)</li><li>XLSX export now active and working (some columns will be edited, especially tagsets)</li><li>third download options (hierarchy) will follow within the next days, some bugs need to be fixed</li><li>all components are now vuetify components. everything is 100% responsive, read more here: <a href="https://vuetifyjs.com" target="_blank">vuetifyjs.com</a></li></ul></i></h3>
     <h3><br>Git Repository: <a href="https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze" target="_blank">https://github.com/german-in-austria/dioe-analyze/tree/master/dianalyze</a></h3>
   </div>
@@ -417,7 +417,7 @@ select {
 }
 hr {
   margin-top: 10px;
-  margin-botton: 10px;
+  margin-bottom: 10px;
 }
 option {
   width: 100%;
